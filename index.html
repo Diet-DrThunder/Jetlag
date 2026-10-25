@@ -123,13 +123,12 @@ input{font:inherit;border:3px solid var(--ink);border-radius:10px;padding:8px 10
 /* ---------- GAME CONTENT (from the Google Site) ---------- */
 const SCH=['Pond Springs','Jollyville','Challenger Pond Springs','Live Oak Elementary'];
 const GAS=['8000 Anderson Mill Rd, Austin, TX 78729 (7-Eleven)','6107 W Parmer Ln, Austin, TX 78729 (Circle K)','8925 Anderson Mill Rd, Austin, TX 78729 (Sunrise Mini Mart)','13201 Pond Springs Rd, Austin, TX 78729 (Shell)'];
-const APT=['7920 San Felipe Blvd, Austin, TX 78729 (Flats on San Felipe)','8601 Anderson Mill Rd, Austin, TX 78729 (Bexley)','7011 W Parmer Ln, Austin, TX 78729 (Oakville)','12800 Turtle Rock Rd, Austin, TX 78729 (Villages at Turtle Rock)'];
 const PARK=['7617 Elkhorn Mountain Trail, Austin, TX 78729 (Rattan)','12400 Hunters Chase Dr, Austin, TX 78729 (Hunter\'s Chase)','13308 Humphrey Dr, Austin, TX 78729 (Robinson)'];
 const SEEK=[
  {n:'Radar',q:'Are you within X distance from me?',t:5,c:'Draw 2, Pick 1',o:{'Distance':['250 yards','1/4 mile','1/2 mile','1 mile']}},
  {n:'Thermometer',q:'I have just travelled X distance, am I hotter or colder?',t:3,c:'Draw 2, Pick 1',o:{'Distance':['1/2 mile','1/4 mile','250 yards']}},
- {n:'Matching',q:'Is your nearest ____ the same as my nearest ____?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'Street':[],'School':SCH,'Gas Station':GAS,'Apartment Complex':APT,'Park':PARK}},
- {n:'Measuring',q:'Are you closer or further from a ____ than me?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'School':SCH,'Gas Station':GAS,'Apartment Complex':APT,'Park':PARK}},
+ {n:'Matching',q:'Is your nearest ____ the same as my nearest ____?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'Street':[],'School':SCH,'Gas Station':GAS,'Park':PARK}},
+ {n:'Measuring',q:'Are you closer or further from a ____ than me?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'School':SCH,'Gas Station':GAS,'Park':PARK}},
  {n:'Photos',q:'Send a photo of (subject).',t:5,c:'Draw 1',note:'All objects must be within the hiding zone.',o:{'Subjects':['A Tree: must include the entire tree','The Sky: place phone on the ground and shoot straight up, no zoom','You: selfie mode, arm parallel to the ground, fully extended','Tallest Structure in Your Sightline: must include the top, and the top must be in the top 1/3 of the frame','A Sidewalk: must include the full width of the sidewalk and at least 1 driveway','A Trash Can: must include the entire can, the top, and two sides']}}
 ];
 const DRAW=[[1,25,'2 Minute Time Bonus'],[26,40,'4 Minute Time Bonus'],[41,50,'6 Minute Time Bonus'],[51,53,'8 Minute Time Bonus'],[54,55,'12 Minute Time Bonus'],[56,59,'Randomize Question'],[60,63,'Veto Question'],[64,65,'Duplicate Card'],[66,66,'MOVE (see Move card below)'],[67,70,'Discard 1, Draw 2'],[71,74,'Discard 2, Draw 3'],[75,76,'Draw 1, Expand 1 (raises max hand size by 1)'],[77,100,'CURSE: roll 1-13 below']];
@@ -151,10 +150,9 @@ const CURSES=[
 const RULES=[
  ['Hiding','You may hide along the yellow lines on the map, but not on the red lines. Anywhere in between is acceptable.'],
  ['Final location','Your final location at the end of the hiding period must be ON an accessible footpath or road. After that you may only move within 100 yards of that final location.'],
- ['Endgame','The endgame starts once a seeker is within 750 ft (0.14 miles) of you. From that point the hider may NOT move, and must tell the seeker.'],
  ['Cards','Text the seekers every card you play. Cards are announced when played, not when drawn.'],
  ['Drawing a card','Ask Google for a random number from 1 to 100 (or use the roller on the Hider tab) and use the table on the Hider tab. If you roll a curse and already have it, roll again.'],
- ['Move card','Discard your hand and send the seekers to your current location. You get 15 minutes to set up a new hiding zone elsewhere on the game map. Seekers are frozen and your hiding timer is paused until that period ends. It cannot be played during the endgame.']
+ ['Move card','Discard your hand and send the seekers to your current location. You get 15 minutes to set up a new hiding zone elsewhere on the game map. Seekers are frozen and your hiding timer is paused until that period ends.']
 ];
 
 /* ---------- STATE ---------- */
@@ -185,6 +183,8 @@ function clip(P,d,c){const f=p=>2*(p[0]*d[0]+p[1]*d[1])-c,o=[];
     if((fa<0&&fb>0)||(fa>0&&fb<0)){const t=fa/(fa-fb);o.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}}return o}
 function cell(F,others){let P=[[-1e4,-1e4],[1e4,-1e4],[1e4,1e4],[-1e4,1e4]];
   others.forEach(O=>{P=clip(P,[O[0]-F[0],O[1]-F[1]],O[0]*O[0]+O[1]*O[1]-F[0]*F[0]-F[1]*F[1])});return P.map(ll)}
+if(!{Park:1,School:1,'Gas Station':1}[S.cat])S.cat='Park';
+for(const n of ['Flats on San Felipe','Bexley','Oakville','Villages at Turtle Rock'])delete S.poi[n];
 const boxPC=[[[C[1]-.25,C[0]-.2],[C[1]+.25,C[0]-.2],[C[1]+.25,C[0]+.2],[C[1]-.25,C[0]+.2],[C[1]-.25,C[0]-.2]]];
 S.items=S.items.filter(it=>it.region&&it.region.length);
 S.items.forEach(it=>{if(typeof it.region[0][0]==='number')it.region=[[cl(it.region.map(p=>[p[1],p[0]]))]]});
@@ -214,7 +214,7 @@ function bdTap(p){const g=BD.segs,l=g[g.length-1];
   if(l&&l.c===BD.cur)l.p.push(p);else g.push({c:BD.cur,p:l?[l.p[l.p.length-1],p]:[p]});drawBoundary();syncUI()}
 
 /* ---------- PLACES (matching + measuring) ---------- */
-const CATS={'Park':{c:'#0f7b5c',l:'P'},'School':{c:'#2a6fdb',l:'S'},'Gas Station':{c:'#d62839',l:'G'},'Apartment':{c:'#7336d6',l:'A'}};
+const CATS={'Park':{c:'#0f7b5c',l:'P'},'School':{c:'#2a6fdb',l:'S'},'Gas Station':{c:'#d62839',l:'G'}};
 const POI=[
  ['Park','Rattan Creek Park','7617 Elkhorn Mountain Trl, Austin, TX 78729'],
  ['Park',"Hunter's Chase Park",'12400 Hunters Chase Dr, Austin, TX 78729'],
@@ -226,12 +226,8 @@ const POI=[
  ['Gas Station','7-Eleven (8000 Anderson Mill)','8000 Anderson Mill Rd, Austin, TX 78729'],
  ['Gas Station','Circle K (6107 W Parmer)','6107 W Parmer Ln, Austin, TX 78729'],
  ['Gas Station','Sunrise Mini Mart (8925 Anderson Mill)','8925 Anderson Mill Rd, Austin, TX 78729'],
- ['Gas Station','Shell (13201 Pond Springs)','13201 Pond Springs Rd, Austin, TX 78729'],
- ['Apartment','Flats on San Felipe','7920 San Felipe Blvd, Austin, TX 78729'],
- ['Apartment','Bexley','8601 Anderson Mill Rd, Austin, TX 78729'],
- ['Apartment','Oakville','7011 W Parmer Ln, Austin, TX 78729'],
- ['Apartment','Villages at Turtle Rock','12800 Turtle Rock Rd, Austin, TX 78729']];
-const SEED={'Oakville':[945,312],'Villages at Turtle Rock':[120,293],'Robinson Park':[490,140],'Rattan Creek Park':[700,430]};
+ ['Gas Station','Shell (13201 Pond Springs)','13201 Pond Springs Rd, Austin, TX 78729']];
+const SEED={'Robinson Park':[490,140],'Rattan Creek Park':[700,430]};
 const seedMissing=()=>{for(const n in SEED)if(!S.poi[n])S.poi[n]=px(...SEED[n])};
 const placed=()=>POI.filter(p=>p[0]===S.cat&&S.poi[p[1]]).map(p=>({n:p[1],ll:S.poi[p[1]]}));
 let placing=null,geoRun=false;
@@ -361,7 +357,7 @@ $('hideBody').innerHTML=`<div class="card p3" style="display:grid;gap:10px"><h2 
   <button class="btn" id="draw" style="background:#12203a;color:#fff;font-size:22px;min-height:60px">Draw cards</button><div id="drawOut" style="display:grid;gap:10px"></div>
   <button class="btn" id="roll">Draw just one card</button><div id="rollOut" style="display:grid;gap:10px"></div></div>`+
  det('Card table',`<table style="width:100%">${DRAW.map(r=>`<tr style="border-top:2px solid #d5deea"><td style="padding:6px 12px 6px 0;white-space:nowrap;font-weight:700">${r[0]===r[1]?r[0]:r[0]+'-'+r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`)+
- det('Move card',`<p>${RULES[5][1]}</p>`,'roll 66','#ff9f1c')+
+ det('Move card',`<p>${RULES.find(r=>r[0]==='Move card')[1]}</p>`,'roll 66','#ff9f1c')+
  '<h2>Curses</h2><p class="sm">Roll 1-13. If you already have that curse, roll again.</p>'+
  '<button class="btn" id="rollC" style="background:#d62839;color:#fff;font-size:22px;min-height:60px">Roll a curse</button><div id="curseOut"></div>'+
  CURSES.map((c,i)=>det(`${i+1}. ${c[0]}`,`<p>${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p>`,'','#d62839')).join('');
