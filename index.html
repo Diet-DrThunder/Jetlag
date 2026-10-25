@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jet Lag: Rattan Creek</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+html,body{height:100%;margin:0}
+body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0f172a}
+#map{flex:1;min-height:200px}
+details>summary{cursor:pointer;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details[open]>summary .chev{transform:rotate(90deg)}
+.chev{display:inline-block;transition:transform .15s}
+.btn{padding:.4rem .7rem;border-radius:.5rem;font-size:.8rem;font-weight:600;background:#1e293b;color:#e2e8f0;border:1px solid #334155}
+.btn.on{background:#facc15;color:#1e293b;border-color:#facc15}
+.btn:active{transform:scale(.97)}
+.tab.on{color:#facc15;border-top:2px solid #facc15}
+</style>
+</head>
+<body class="flex flex-col text-slate-100">
+
+<header class="px-4 py-2 bg-slate-900 border-b border-slate-700 flex items-baseline justify-between" style="padding-top:max(.5rem,env(safe-area-inset-top))">
+  <h1 class="font-bold text-lg tracking-tight">Jet Lag: Rattan Creek</h1>
+  <span class="text-xs text-slate-400" id="hdrNote"></span>
+</header>
+
+<main class="flex-1 min-h-0 relative">
+  <!-- MAP -->
+  <section id="tab-map" class="absolute inset-0 flex flex-col">
+    <div id="map"></div>
+    <div class="bg-slate-900 border-t border-slate-700 p-3 space-y-2 overflow-y-auto" style="max-height:44%">
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="text-xs text-slate-400 w-full">Hider answered the radar question:</span>
+        <button class="btn" id="mIn">Yes, within the radius</button>
+        <button class="btn" id="mOut">No, outside the radius</button>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <span class="text-xs text-slate-400 w-full">Radius (tap the map to drop a ping):</span>
+        <span id="presets" class="flex flex-wrap gap-2"></span>
+        <label class="flex items-center gap-1 text-xs text-slate-300">custom
+          <input id="rCustom" type="number" min="0.05" step="0.05" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-slate-100"> mi</label>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn" id="gps">Ping my location</button>
+        <button class="btn" id="fit">Fit game area</button>
+        <button class="btn" id="bndT">Boundary</button>
+        <button class="btn" id="clearP">Clear all pings</button>
+      </div>
+      <details>
+        <summary class="text-xs text-slate-400"><span class="chev">&#9656;</span> Boundary looks off? Nudge it</summary>
+        <div class="flex gap-2 pt-2 items-center">
+          <button class="btn" data-n="0,1">N</button><button class="btn" data-n="0,-1">S</button>
+          <button class="btn" data-n="-1,0">W</button><button class="btn" data-n="1,0">E</button>
+          <button class="btn" data-n="reset">Reset</button>
+        </div>
+      </details>
+      <div class="text-xs text-slate-400 flex gap-3">
+        <span><i class="inline-block w-3 h-1 align-middle" style="background:#facc15"></i> hide here OK</span>
+        <span><i class="inline-block w-3 h-1 align-middle" style="background:#ef4444"></i> no hiding here</span>
+        <span><i class="inline-block w-3 h-3 align-middle" style="background:#ef444455"></i> eliminated</span>
+      </div>
+      <ul id="pingList" class="space-y-1"></ul>
+    </div>
+  </section>
+
+  <!-- SEEKER -->
+  <section id="tab-seek" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="seekBody" class="max-w-xl mx-auto space-y-3"></div></section>
+
+  <!-- HIDER -->
+  <section id="tab-hide" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="hideBody" class="max-w-xl mx-auto space-y-3"></div></section>
+
+  <!-- RULES -->
+  <section id="tab-rules" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="rulesBody" class="max-w-xl mx-auto space-y-3"></div></section>
+
+  <!-- LOG -->
+  <section id="tab-log" class="absolute inset-0 overflow-y-auto p-4 hidden">
+    <div class="max-w-xl mx-auto space-y-3">
+      <div class="flex gap-2">
+        <input id="logIn" placeholder="Add a note (question asked, answer, curse...)" class="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm">
+        <button class="btn" id="logAdd">Add</button>
+      </div>
+      <ul id="logList" class="space-y-1 text-sm"></ul>
+      <div class="flex gap-2 pt-2">
+        <button class="btn" id="logClear">Clear log</button>
+        <button class="btn" id="resetAll" style="color:#fca5a5">Reset whole game</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="grid grid-cols-5 bg-slate-900 border-t border-slate-700 text-xs text-slate-400" style="padding-bottom:env(safe-area-inset-bottom)">
+  <button class="tab on py-3" data-t="map">Map</button>
+  <button class="tab py-3" data-t="seek">Seeker</button>
+  <button class="tab py-3" data-t="hide">Hider</button>
+  <button class="tab py-3" data-t="rules">Rules</button>
+  <button class="tab py-3" data-t="log">Log</button>
+</nav>
+
+<script>
+/* ---------- GAME CONTENT (from the Google Site) ---------- */
+const SCH=['Pond Springs','Jollyville','Challenger Pond Springs','Live Oak Elementary'];
+const GAS=['8000 Anderson Mill Rd, Austin, TX 78729 (7-Eleven)','6107 W Parmer Ln, Austin, TX 78729 (Circle K)','8925 Anderson Mill Rd, Austin, TX 78729 (Sunrise Mini Mart)','13201 Pond Springs Rd, Austin, TX 78729 (Shell)'];
+const APT=['7920 San Felipe Blvd, Austin, TX 78729 (Flats on San Felipe)','8601 Anderson Mill Rd, Austin, TX 78729 (Bexley)','7011 W Parmer Ln, Austin, TX 78729 (Oakville)','12800 Turtle Rock Rd, Austin, TX 78729 (Villages at Turtle Rock)'];
+const PARK=['7617 Elkhorn Mountain Trail, Austin, TX 78729 (Rattan)','12400 Hunters Chase Dr, Austin, TX 78729 (Hunter\'s Chase)','13308 Humphrey Dr, Austin, TX 78729 (Robinson)'];
+const SEEK=[
+ {n:'Radar',q:'Are you within X distance from me?',t:5,c:'Draw 2, Pick 1',o:{'Distance':['250 yards','1/4 mile','1/2 mile','1 mile']}},
+ {n:'Thermometer',q:'I have just travelled X distance, am I hotter or colder?',t:3,c:'Draw 2, Pick 1',o:{'Distance':['1/2 mile','1/4 mile','250 yards']}},
+ {n:'Matching',q:'Is your nearest ____ the same as my nearest ____?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'Street':[],'School':SCH,'Gas Station':GAS,'Apartment Complex':APT,'Park':PARK}},
+ {n:'Measuring',q:'Are you closer or further from a ____ than me?',t:5,c:'Draw 3, Pick 1',note:'Measure from the name on Google Maps.',o:{'School':SCH,'Gas Station':GAS,'Apartment Complex':APT,'Park':PARK}},
+ {n:'Photos',q:'Send a photo of (subject).',t:5,c:'Draw 1',note:'All objects must be within the hiding zone.',o:{'Subjects':['A Tree: must include the entire tree','The Sky: place phone on the ground and shoot straight up, no zoom','You: selfie mode, arm parallel to the ground, fully extended','Tallest Structure in Your Sightline: must include the top, and the top must be in the top 1/3 of the frame','A Sidewalk: must include the full width of the sidewalk and at least 1 driveway','A Trash Can: must include the entire can, the top, and two sides']}}
+];
+const DRAW=[[1,25,'2 Minute Time Bonus'],[26,40,'4 Minute Time Bonus'],[41,50,'6 Minute Time Bonus'],[51,53,'8 Minute Time Bonus'],[54,55,'12 Minute Time Bonus'],[56,59,'Randomize Question'],[60,63,'Veto Question'],[64,65,'Duplicate Card'],[66,66,'MOVE (see Move card below)'],[67,70,'Discard 1, Draw 2'],[71,74,'Discard 2, Draw 3'],[75,76,'Draw 1, Expand 1 (raises max hand size by 1)'],[77,100,'CURSE: roll 1-13 below']];
+const CURSES=[
+ ['Ransom Note','The next question the seekers ask must be composed of words and letters cut out of any printed material. It must be coherent and include at least 5 words.','Spell out "curse of the ransom note" as a ransom note.'],
+ ['Drained Brain','Choose three questions in different categories. The seekers cannot ask those questions for the rest of your run.','Discard your hand.'],
+ ['Gambler\'s Feet','For the next five minutes, seekers must roll a die before they take any steps in any direction. They may take that many steps before rolling again.','Roll a die. If it\'s even, this curse has no effect.'],
+ ['Fish out of Water','The seeker must ask their next question from within 250 ft of a non-chlorinated body of water, of any size.','Seekers must be at least 1/4 mile from you.'],
+ ['Cairn','Stack as many rocks as you can in a freestanding tower (one attempt). Each rock may touch only one other rock; rocks can\'t be removed once added; the tower must stand 5 seconds before adding another. If any rock other than the base touches the ground, it has fallen. Tell the seekers how many rocks it held when it last stood 5 seconds. They must build a tower of that height under the same rules before asking another question; if theirs falls they restart. Rocks must be found in nature and dispersed afterward.','Build a rock tower.'],
+ ['Mediocre Travel Agent','Choose any publicly accessible point of interest within a half mile of the seekers (they can\'t be on transit). They must go there and spend at least 5 minutes before asking another question, and bring you a souvenir. If the souvenir is lost before they give it to you, you get an extra 10 minutes.','Their destination must be further from you than their current location.'],
+ ['Luxury Car','Take a photo of a car. The seekers must take a photo of a more expensive car before asking another question.','A photo of a car.'],
+ ['Spotty Memory','For the rest of your run, one random question category is disabled at all times. After the curse is played, seekers roll a die to pick the disabled category. It stays disabled until the next question is asked, then they roll again. The same category can repeat.','Discard a time bonus card.'],
+ ['Bird Guide','Film a bird for as long as possible, up to 15 minutes straight (one chance). If the bird leaves the frame, your timer stops. The seekers must film a bird for the same time or longer before asking another question. They may instead take a time penalty three times your recording, minimum 20 minutes, to skip the curse.','Film a bird.'],
+ ['Frozen Dot','Place a point on the map at least 500 ft from where the seekers are standing. If in exactly 5 minutes they are within 150 ft of that point, you get a 25 minute time bonus.','Seekers must be at least 1/2 mile away.'],
+ ['Zoologist','Take a photo of a wild fish, bird, mammal, reptile, amphibian, or bug. The seekers must photograph a wild animal in the same category before asking another question.','A photo of an animal.'],
+ ['Right Turn','For the next hour, the seekers can only turn right at intersections. A right turn is any road that veers to their right; going straight is allowed. If they hit a dead end where they can\'t continue forward or turn right for another 500 ft, they may do a full 180.','Discard a curse and one other card.'],
+ ['Hidden Hangman','Before asking another question, seekers must beat the hider at hangman. The hider picks a 5-letter word; the game ends on a correct word guess or 7 wrong letter guesses. The hider must respond to all queries within 30 seconds. Seekers can\'t challenge again for 3 minutes after a loss. After 3 losses, the seekers are released.','Discard a time bonus card.']
+];
+const RULES=[
+ ['Hiding','You may hide along the yellow lines on the map, but not on the red lines. Anywhere in between is acceptable.'],
+ ['Final location','Your final location at the end of the hiding period must be ON an accessible footpath or road. After that you may only move within 100 yards of that final location.'],
+ ['Endgame','The endgame starts once a seeker is within 750 ft (0.14 miles) of you. From that point the hider may NOT move, and must tell the seeker.'],
+ ['Cards','Text the seekers every card you play. Cards are announced when played, not when drawn.'],
+ ['Drawing a card','Ask Google for a random number from 1 to 100 (or use the roller on the Hider tab) and use the table on the Hider tab. If you roll a curse and already have it, roll again.'],
+ ['Move card','Discard your hand and send the seekers to your current location. You get 15 minutes to set up a new hiding zone elsewhere on the game map. Seekers are frozen and your hiding timer is paused until that period ends. It cannot be played during the endgame.']
+];
+
+/* ---------- STATE ---------- */
+const K='jl-rattan-v1';
+let S={pings:[],log:[],off:[0,0],bnd:true,r:804.67,inside:true};
+try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mi=m=>(m/1609.344).toFixed(2)+' mi';
+const now=()=>new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+function log(t){S.log.unshift({t:now(),x:t});save();renderLog()}
+
+/* ---------- MAP ---------- */
+// Boundary traced from the supplied map image; pixel coords -> lat/lng (approximate, use the nudge buttons)
+const PARK_LL=[30.4497,-97.7570];
+const px=(x,y)=>[30.4510-(y-372)*0.0000225+S.off[1]*0.00009, -97.7618+(x-515)*0.000026+S.off[0]*0.0001];
+const Y1=[[640,0],[660,50],[700,110],[735,170],[790,240],[830,290],[860,320],[905,350],[960,390],[1000,440],[1018,500],[1024,518]];
+const R1=[[1024,518],[1000,535],[970,548]];
+const Y2=[[970,548],[950,500],[930,455],[905,452],[895,465],[925,495],[935,515],[920,530],[880,540],[840,548],[805,565],[795,545],[800,500],[740,498],[735,540],[725,565],[690,580],[650,605],[610,630],[588,641]];
+const R2=[[588,641],[560,650],[535,670],[525,705],[480,690],[430,700],[395,690],[360,685]];
+const Y3=[[360,685],[348,640],[335,590],[280,585],[255,570],[230,540],[215,490],[210,440],[205,415],[235,395],[280,395],[310,405],[340,380],[360,355],[345,320],[375,310],[405,285],[425,235],[460,205],[475,195],[470,180]];
+const R3=[[470,180],[437,95],[640,0]];
+const SPUR=[[858,307],[900,258]];
+
+const map=L.map('map',{zoomControl:true}).setView(PARK_LL,15);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+const bndG=L.layerGroup().addTo(map), pingG=L.layerGroup().addTo(map);
+L.marker(PARK_LL,{title:'Rattan Creek Park',opacity:.9}).addTo(map).bindTooltip('Rattan Creek Park');
+
+function drawBoundary(){
+  bndG.clearLayers(); if(!S.bnd) return;
+  const all=[].concat(Y1,R1,Y2,R2,Y3,R3).map(p=>px(...p));
+  L.polygon(all,{stroke:false,fillColor:'#38bdf8',fillOpacity:.07,interactive:false}).addTo(bndG);
+  [[Y1,'#facc15'],[R1,'#ef4444'],[Y2,'#facc15'],[R2,'#ef4444'],[Y3,'#facc15'],[R3,'#ef4444'],[SPUR,'#ef4444']].forEach(([pts,col])=>
+    L.polyline(pts.map(p=>px(...p)),{color:col,weight:5,opacity:.95,interactive:false}).addTo(bndG));
+}
+function ring(lat,lng,r,n=72){const o=[];for(let i=0;i<n;i++){const b=2*Math.PI*i/n,R=6378137;
+  o.push([lat+(r/R)*Math.cos(b)*180/Math.PI, lng+(r/R)*Math.sin(b)/Math.cos(lat*Math.PI/180)*180/Math.PI])}return o}
+function drawPings(){
+  pingG.clearLayers();
+  S.pings.forEach((p,i)=>{
+    const col=p.inside?'#22c55e':'#ef4444';
+    if(p.inside){ // eliminate everything OUTSIDE the circle
+      const big=[[p.lat+.2,p.lng-.25],[p.lat+.2,p.lng+.25],[p.lat-.2,p.lng+.25],[p.lat-.2,p.lng-.25]];
+      L.polygon([big,ring(p.lat,p.lng,p.r)],{stroke:false,fillColor:'#ef4444',fillOpacity:.22,interactive:false}).addTo(pingG);
+    }
+    const c=L.circle([p.lat,p.lng],{radius:p.r,color:col,weight:3,dashArray:p.inside?'8 6':null,fillColor:'#ef4444',fillOpacity:p.inside?0:.3,bubblingMouseEvents:false}).addTo(pingG);
+    c.bindPopup(`<b>Ping ${i+1}</b><br>${mi(p.r)}, hider ${p.inside?'IS':'is NOT'} within<br><button onclick="delPing(${p.id})" style="color:#b91c1c;font-weight:600">Delete ping</button>`);
+    L.circleMarker([p.lat,p.lng],{radius:4,color:col,fillColor:col,fillOpacity:1,interactive:false}).addTo(pingG);
+  });
+}
+function addPing(lat,lng){
+  const p={id:Date.now(),lat,lng,r:S.r,inside:S.inside};
+  S.pings.push(p);save();drawPings();renderPings();
+  log(`Radar ${mi(p.r)}: hider ${p.inside?'IS':'is NOT'} within (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
+}
+window.delPing=id=>{S.pings=S.pings.filter(p=>p.id!==id);save();map.closePopup();drawPings();renderPings();log('Deleted a ping')};
+function renderPings(){
+  $('pingList').innerHTML=S.pings.length?S.pings.map((p,i)=>`<li class="flex items-center justify-between bg-slate-800 rounded px-2 py-1 text-xs">
+    <span>#${i+1} ${mi(p.r)} <b style="color:${p.inside?'#4ade80':'#f87171'}">${p.inside?'hider inside':'hider outside'}</b></span>
+    <span class="flex gap-1"><button class="btn" onclick="map.setView([${p.lat},${p.lng}],16)">Go</button><button class="btn" onclick="delPing(${p.id})">Delete</button></span></li>`).join(''):
+    '<li class="text-xs text-slate-500">No pings yet. Pick an answer and radius, then tap the map.</li>';
+  $('hdrNote').textContent=S.pings.length+' ping'+(S.pings.length===1?'':'s');
+}
+function syncControls(){
+  $('mIn').classList.toggle('on',S.inside);$('mOut').classList.toggle('on',!S.inside);
+  [...$('presets').children].forEach(b=>b.classList.toggle('on',Math.abs(+b.dataset.r-S.r)<1));
+  $('bndT').classList.toggle('on',S.bnd);
+}
+[['250 yd',228.6],['1/4 mi',402.34],['1/2 mi',804.67],['1 mi',1609.34]].forEach(([l,r])=>{
+  const b=document.createElement('button');b.className='btn';b.textContent=l;b.dataset.r=r;
+  b.onclick=()=>{S.r=r;$('rCustom').value='';save();syncControls()};$('presets').appendChild(b)});
+$('rCustom').oninput=e=>{const v=parseFloat(e.target.value);if(v>0){S.r=v*1609.344;save();syncControls()}};
+$('mIn').onclick=()=>{S.inside=true;save();syncControls()};
+$('mOut').onclick=()=>{S.inside=false;save();syncControls()};
+$('bndT').onclick=()=>{S.bnd=!S.bnd;save();drawBoundary();syncControls()};
+$('fit').onclick=()=>map.fitBounds(L.latLngBounds([].concat(Y1,R1,Y2,R2,Y3,R3).map(p=>px(...p))).pad(.05));
+$('clearP').onclick=()=>{if(S.pings.length&&confirm('Remove all pings?')){S.pings=[];save();drawPings();renderPings();log('Cleared all pings')}};
+$('gps').onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(
+  pos=>{addPing(pos.coords.latitude,pos.coords.longitude);map.setView([pos.coords.latitude,pos.coords.longitude],16)},
+  ()=>alert('Could not get your location. Allow location access and try again.')):alert('Location is not available on this device.');
+document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{
+  if(b.dataset.n==='reset')S.off=[0,0];else{const[a,c]=b.dataset.n.split(',').map(Number);S.off=[S.off[0]+a,S.off[1]+c]}
+  save();drawBoundary()});
+map.on('click',e=>addPing(e.latlng.lat,e.latlng.lng));
+
+/* ---------- CONTENT TABS ---------- */
+const det=(title,body,sub='')=>`<details class="bg-slate-800 rounded-lg border border-slate-700"><summary class="px-3 py-3 flex items-center justify-between"><span class="font-semibold"><span class="chev text-slate-400 mr-2">&#9656;</span>${title}</span><span class="text-xs text-slate-400">${sub}</span></summary><div class="px-3 pb-3 text-sm text-slate-300 space-y-2">${body}</div></details>`;
+$('seekBody').innerHTML='<p class="text-sm text-slate-400">Each question costs the hider a response time and you draw cards in return. Tap a question type to see the options.</p>'+SEEK.map(s=>
+  det(s.n,`<p class="text-slate-100">${esc(s.q)}</p>${s.note?`<p class="text-slate-400">${esc(s.note)}</p>`:''}`+
+  Object.entries(s.o).map(([k,v])=>`<div><div class="font-semibold text-slate-100">${k}</div>${v.length?'<ul class="list-disc ml-5">'+v.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`).join(''),
+  `${s.t} min &middot; ${s.c}`)).join('');
+
+$('hideBody').innerHTML=`<p class="text-sm text-slate-400">Text the seekers every card you play. Cards are announced when played, not when drawn.</p>
+ <div class="bg-slate-800 rounded-lg border border-slate-700 p-3 space-y-2"><div class="font-semibold">Draw a card</div>
+  <button class="btn on" id="roll">Roll 1-100</button><div id="rollOut" class="text-sm text-slate-200"></div></div>`+
+ det('Card table',`<table class="w-full">${DRAW.map(r=>`<tr class="border-t border-slate-700"><td class="py-1 pr-3 text-slate-400 whitespace-nowrap">${r[0]===r[1]?r[0]:r[0]+'-'+r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`)+
+ det('Move card',`<p>${RULES[5][1]}</p>`,'roll 66')+
+ '<h2 class="font-semibold pt-2">Curses <span class="text-xs text-slate-400 font-normal">(roll 1-13; re-roll if you already have it)</span></h2>'+
+ '<button class="btn on" id="rollC">Roll a curse</button><div id="curseOut" class="text-sm"></div>'+
+ CURSES.map((c,i)=>det(`${i+1}. ${c[0]}`,`<p>${esc(c[1])}</p><p class="text-slate-100"><b>Casting cost:</b> ${esc(c[2])}</p>`)).join('');
+const rnd=n=>1+Math.floor(Math.random()*n);
+function showCurse(){const i=rnd(13),c=CURSES[i-1];
+  $('curseOut').innerHTML=`<div class="bg-slate-800 border border-yellow-400 rounded-lg p-3 mt-2"><b>${i}. ${c[0]}</b><p class="text-slate-300">${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p></div>`;
+  log(`Hider curse roll: ${c[0]}`);return c[0]}
+$('roll').onclick=()=>{const n=rnd(100),r=DRAW.find(r=>n>=r[0]&&n<=r[1]);
+  $('rollOut').innerHTML=`<b>${n}</b>: ${r[2]}`;log(`Hider card roll ${n}: ${r[2]}`);if(n>=77){$('rollOut').innerHTML+=' &middot; <i>rolling curse...</i>';showCurse()}};
+$('rollC').onclick=showCurse;
+
+$('rulesBody').innerHTML=RULES.map(r=>`<div class="bg-slate-800 rounded-lg border border-slate-700 p-3"><div class="font-semibold">${r[0]}</div><p class="text-sm text-slate-300 mt-1">${esc(r[1])}</p></div>`).join('')+
+ '<p class="text-xs text-slate-500">Map tools: tap the map to drop a radar ping. "Yes" shades everything outside the circle; "No" shades the circle itself.</p>';
+
+/* ---------- LOG / TABS ---------- */
+function renderLog(){$('logList').innerHTML=S.log.length?S.log.map(l=>`<li class="bg-slate-800 rounded px-3 py-2"><span class="text-slate-500 mr-2">${esc(l.t)}</span>${esc(l.x)}</li>`).join(''):'<li class="text-slate-500">Nothing logged yet.</li>'}
+$('logAdd').onclick=()=>{const v=$('logIn').value.trim();if(v){log(v);$('logIn').value=''}};
+$('logIn').onkeydown=e=>{if(e.key==='Enter')$('logAdd').click()};
+$('logClear').onclick=()=>{if(confirm('Clear the log?')){S.log=[];save();renderLog()}};
+$('resetAll').onclick=()=>{if(confirm('Reset pings and log for a new game?')){S.pings=[];S.log=[];save();drawPings();renderPings();renderLog()}};
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));
+  ['map','seek','hide','rules','log'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==b.dataset.t));
+  if(b.dataset.t==='map')setTimeout(()=>map.invalidateSize(),50)});
+
+drawBoundary();drawPings();renderPings();renderLog();syncControls();
+if(S.r&&!document.querySelector('#presets .on'))$('rCustom').value=(S.r/1609.344).toFixed(2);
+</script>
+</body>
+</html>
