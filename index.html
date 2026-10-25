@@ -231,6 +231,8 @@ const POI=[
  ['Apartment','Bexley','8601 Anderson Mill Rd, Austin, TX 78729'],
  ['Apartment','Oakville','7011 W Parmer Ln, Austin, TX 78729'],
  ['Apartment','Villages at Turtle Rock','12800 Turtle Rock Rd, Austin, TX 78729']];
+const SEED={'Oakville':[945,312],'Villages at Turtle Rock':[120,293],'Robinson Park':[490,140],'Rattan Creek Park':[700,430]};
+const seedMissing=()=>{for(const n in SEED)if(!S.poi[n])S.poi[n]=px(...SEED[n])};
 const placed=()=>POI.filter(p=>p[0]===S.cat&&S.poi[p[1]]).map(p=>({n:p[1],ll:S.poi[p[1]]}));
 let placing=null,geoRun=false;
 function drawPOI(){poiG.clearLayers();if(S.tool!=='match'&&S.tool!=='measure'||BD)return;const cs=CATS[S.cat];
@@ -247,7 +249,7 @@ async function geocode(force){if(geoRun)return;geoRun=true;if(force)S.poi={};
     try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&viewbox=-97.82,30.49,-97.70,30.41&q='+encodeURIComponent(todo[i][2]));
       const j=await r.json();if(j[0]){const p=[+j[0].lat,+j[0].lon];if(dist(xy(p),[0,0])<7000)S.poi[todo[i][1]]=p}}catch(e){}
     save();drawPOI();renderUnp();await new Promise(r=>setTimeout(r,1100))}
-  $('geo').textContent='';geoRun=false;S.geo=1;save();renderUnp()}
+  $('geo').textContent='';geoRun=false;S.geo=1;seedMissing();save();drawPOI();renderUnp()}
 
 /* ---------- QUESTION TOOLS ---------- */
 const T={
@@ -354,8 +356,10 @@ $('hideBody').innerHTML=`<div class="card p3" style="display:grid;gap:10px"><h2 
   <button class="btn" id="addBtn">Add to hand</button></div>
   <div class="row"><span class="sm">Hand limit</span><button class="btn" id="mxM" style="min-width:50px">-</button><b id="mxV"></b><button class="btn" id="mxP" style="min-width:50px">+</button></div></div>
  <p class="sm">Text the seekers every card you play. Cards are announced when played, not when drawn.</p>
- <div class="card p3" style="background:var(--yel);display:grid;gap:10px"><h2 style="margin:0">Draw a card</h2>
-  <button class="btn" id="roll" style="background:#12203a;color:#fff;font-size:22px;min-height:60px">Roll 1-100</button><div id="rollOut"></div></div>`+
+ <div class="card p3" style="background:var(--yel);display:grid;gap:10px"><h2 style="margin:0">What question was asked?</h2>
+  <div class="g2" id="qBtns"></div><div id="qInfo" style="font-size:18px;font-weight:700"></div>
+  <button class="btn" id="draw" style="background:#12203a;color:#fff;font-size:22px;min-height:60px">Draw cards</button><div id="drawOut" style="display:grid;gap:10px"></div>
+  <button class="btn" id="roll">Draw just one card</button><div id="rollOut" style="display:grid;gap:10px"></div></div>`+
  det('Card table',`<table style="width:100%">${DRAW.map(r=>`<tr style="border-top:2px solid #d5deea"><td style="padding:6px 12px 6px 0;white-space:nowrap;font-weight:700">${r[0]===r[1]?r[0]:r[0]+'-'+r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`)+
  det('Move card',`<p>${RULES[5][1]}</p>`,'roll 66','#ff9f1c')+
  '<h2>Curses</h2><p class="sm">Roll 1-13. If you already have that curse, roll again.</p>'+
@@ -369,16 +373,25 @@ function addCard(n,ci){S.hand.push({id:Date.now()+Math.random(),n,ci:ci==null?nu
 window.useCard=(id,play)=>{const c=S.hand.find(x=>x.id===id);if(!c)return;S.hand=S.hand.filter(x=>x.id!==id);save();renderHand();log((play?'Played: ':'Discarded: ')+c.n+(play?' (text the seekers)':''))};
 $('addBtn').onclick=()=>{const v=$('addSel').value;if(/^c\d+$/.test(v)){const i=+v.slice(1);addCard('Curse: '+CURSES[i][0],i)}else addCard(v)};
 $('mxM').onclick=()=>{S.max=Math.max(1,S.max-1);save();renderHand()};$('mxP').onclick=()=>{S.max++;save();renderHand()};
-let last=null;window.addLast=()=>{if(last){addCard(last.n,last.ci);last=null;document.querySelectorAll('.addl').forEach(b=>b.remove())}};
 const rnd=n=>1+Math.floor(Math.random()*n);
-function showCurse(){const i=rnd(13),c=CURSES[i-1];last={n:'Curse: '+c[0],ci:i-1};
-  $('curseOut').innerHTML=`<div class="card p3" style="margin-top:12px;border-color:#d62839;display:grid;gap:8px"><h2 style="margin:0">${i}. ${c[0]}</h2><p>${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p><button class="btn addl" onclick="addLast()">Add this curse to my hand</button></div>`;
-  log(`Hider curse roll: ${c[0]}`)}
-$('roll').onclick=()=>{const n=rnd(100),r=DRAW.find(r=>n>=r[0]&&n<=r[1]);
-  $('rollOut').innerHTML=`<div style="font:800 40px/1 Rubik,sans-serif">${n}</div><div style="font-size:21px;font-weight:700">${r[2]}</div>`;
-  log(`Hider card roll ${n}: ${r[2]}`);
-  if(n>=77){showCurse();$('rollOut').innerHTML+='<div class="sm">Curse! The one you got is just below.</div>'}
-  else{last={n:r[2].replace(/MOVE.*/,'Move')};$('rollOut').innerHTML+='<button class="btn addl" onclick="addLast()" style="margin-top:8px">Add to my hand</button>'}};
+const QS={Radar:{n:2,t:5,c:'#2a6fdb'},Thermometer:{n:2,t:3,c:'#d62839'},Matching:{n:3,t:5,c:'#0f7b5c'},Measuring:{n:3,t:5,c:'#7336d6'},Photos:{n:1,t:5,c:'#ff9f1c'}};
+let q=null,drawn=[];
+$('qBtns').innerHTML=Object.keys(QS).map(k=>`<button class="btn tool" data-q="${k}" style="background:${QS[k].c}">${k}</button>`).join('');
+function syncQ(){document.querySelectorAll('[data-q]').forEach(b=>b.classList.toggle('dim',!!q&&b.dataset.q!==q));
+  $('qInfo').textContent=q?`${q}: draw ${QS[q].n}${QS[q].n>1?', keep 1':''}. You have ${QS[q].t} minutes to respond.`:'Tap the question the seekers asked.'}
+document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{q=b.dataset.q;syncQ()});syncQ();
+function pull(){const num=rnd(100),r=DRAW.find(r=>num>=r[0]&&num<=r[1]);
+  if(num>=77){const i=rnd(13)-1;return{n:'Curse: '+CURSES[i][0],ci:i,num}}
+  return{n:r[2].replace(/MOVE.*/,'Move'),num}}
+function showDraw(el,cards){['drawOut','rollOut','curseOut'].forEach(i=>{if($(i)!==el)$(i).innerHTML=''});
+  el.innerHTML=cards.map((c,i)=>`<div class="hc" style="background:#fff;border-left:14px solid ${hcol(c.n)}"><div class="sm">Rolled ${c.num}</div><b style="font-size:20px">${esc(c.n)}</b>${c.ci!=null?`<div class="sm">${esc(CURSES[c.ci][1])}<br><b>Casting cost:</b> ${esc(CURSES[c.ci][2])}</div>`:''}<button class="btn" onclick="pick(${i})">${cards.length>1?'Keep this one':'Add to my hand'}</button></div>`).join('')+
+    (cards.length>1?'<div class="sm" style="color:#12203a">Pick one. The rest are discarded.</div>':'')}
+window.pick=i=>{const c=drawn[i];if(!c)return;addCard(c.n,c.ci);if(drawn.length>1)log(`Kept ${c.n}; discarded the other ${drawn.length-1}`);
+  drawn=[];['drawOut','rollOut','curseOut'].forEach(i=>$(i).innerHTML='')};
+$('draw').onclick=()=>{if(!q)return alert('First tap the question the seekers asked.');
+  drawn=Array.from({length:QS[q].n},pull);showDraw($('drawOut'),drawn);log(`Question asked: ${q}. Drew: ${drawn.map(c=>c.n).join(' / ')}`)};
+$('roll').onclick=()=>{drawn=[pull()];showDraw($('rollOut'),drawn);log('Drew one card: '+drawn[0].n)};
+function showCurse(){const i=rnd(13)-1,c=CURSES[i];drawn=[{n:'Curse: '+c[0],ci:i,num:i+1}];showDraw($('curseOut'),drawn);log('Hider curse roll: '+c[0])}
 $('rollC').onclick=showCurse;
 
 $('rulesBody').innerHTML=RULES.map((r,i)=>`<div class="card p3" style="border-left:14px solid ${['#ffc400','#2a6fdb','#d62839','#0f7b5c','#7336d6','#ff9f1c'][i]}"><h2 style="margin:0">${r[0]}</h2><p style="margin-top:6px">${esc(r[1])}</p></div>`).join('')+
@@ -397,7 +410,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
 
 drawBoundary();draw();drawPOI();renderItems();renderLog();renderHand();syncUI();
 if(!document.querySelector('#presets .on'))$('rCustom').value=(S.r/1609.344).toFixed(2);
-if(!S.geo)geocode();
+if(S.geo){seedMissing();save();drawPOI();renderUnp()}else geocode();
 
 </script>
 </body>
