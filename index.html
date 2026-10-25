@@ -3,102 +3,114 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Jet Lag: Rattan Creek</title>
+<title>Jet Lag: Hide + Seek, Rattan Creek</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Rubik:wght@800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+:root{--ink:#12203a;--sky:#e9f2fb;--yel:#ffd23f}
 html,body{height:100%;margin:0}
-body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#0f172a}
-#map{flex:1;min-height:200px}
-details>summary{cursor:pointer;list-style:none}
-details>summary::-webkit-details-marker{display:none}
+body{display:flex;flex-direction:column;font:18px/1.5 "Atkinson Hyperlegible",system-ui,sans-serif;color:var(--ink);background:var(--sky)}
+h2{font:800 22px/1.2 Rubik,system-ui,sans-serif;margin:8px 0 0}
+.bar{background:var(--ink);color:#fff;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center}
+.logo{font:800 30px/1 Rubik,system-ui,sans-serif;color:var(--yel)}
+.sub{font-size:16px;color:#cfe0f5}
+.badge{background:var(--yel);color:var(--ink);border-radius:99px;padding:4px 14px;font-weight:700}
+.stripe{height:7px;background:linear-gradient(90deg,#2a6fdb 20%,#d62839 20% 40%,#0f7b5c 40% 60%,#7336d6 60% 80%,#ff9f1c 80%)}
+.tabs{display:flex;gap:8px;padding:8px;background:#fff;border-bottom:3px solid var(--ink);overflow-x:auto}
+.tab{flex:1;padding:10px 14px;font:700 19px "Atkinson Hyperlegible",system-ui,sans-serif;border:3px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink)}
+.tab.on{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+.card{background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:4px 4px 0 var(--ink)}
+.card>summary{padding:14px;display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:20px;cursor:pointer;list-style:none;border-radius:11px}
+.card>summary::-webkit-details-marker{display:none}
+.card .body{padding:2px 14px 14px}
+.card .body>*+*{margin-top:10px}
+.sm{font-size:16px;color:#3b4a66;font-weight:400}
+.chev{display:inline-block;transition:transform .15s;margin-right:6px}
 details[open]>summary .chev{transform:rotate(90deg)}
-.chev{display:inline-block;transition:transform .15s}
-.btn{padding:.4rem .7rem;border-radius:.5rem;font-size:.8rem;font-weight:600;background:#1e293b;color:#e2e8f0;border:1px solid #334155}
-.btn.on{background:#facc15;color:#1e293b;border-color:#facc15}
-.btn:active{transform:scale(.97)}
-.tab.on{color:#facc15;border-top:2px solid #facc15}
+.btn{min-height:50px;padding:8px 14px;border-radius:12px;border:3px solid var(--ink);background:#fff;font:700 18px "Atkinson Hyperlegible",system-ui,sans-serif;color:var(--ink)}
+.btn.on{background:var(--yel);box-shadow:3px 3px 0 var(--ink)}
+.btn:active{transform:translate(2px,2px);box-shadow:none}
+.tool{color:#fff;font-size:20px}
+.tool.dim{opacity:.5}
+.say{background:var(--yel);border:3px solid var(--ink);border-radius:12px;padding:10px 12px;font-weight:700;font-size:20px}
+.panel{background:#fff;border-top:3px solid var(--ink);padding:10px;display:grid;gap:10px;overflow-y:auto;max-height:54%;flex:none}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.gone{display:none!important}
+.pin{width:30px;height:30px;border-radius:50%;border:3px solid var(--ink);color:#fff;font:800 14px/24px Rubik,sans-serif;text-align:center}
+.sec{position:absolute;inset:0;overflow-y:auto;padding:14px}
+.sec>div{max-width:640px;margin:0 auto;display:grid;gap:14px}
+.p3{padding:14px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;border:3px solid var(--ink);border-radius:12px;padding:8px 10px;font-size:17px}
+#map{flex:1;min-height:180px}
+input{font:inherit;border:3px solid var(--ink);border-radius:10px;padding:8px 10px}
 </style>
 </head>
-<body class="flex flex-col text-slate-100">
-
-<header class="px-4 py-2 bg-slate-900 border-b border-slate-700 flex items-baseline justify-between" style="padding-top:max(.5rem,env(safe-area-inset-top))">
-  <h1 class="font-bold text-lg tracking-tight">Jet Lag: Rattan Creek</h1>
-  <span class="text-xs text-slate-400" id="hdrNote"></span>
+<body>
+<header class="bar">
+  <div><div class="logo">JET LAG</div><div class="sub">Hide + Seek &middot; Rattan Creek</div></div>
+  <span class="badge" id="hdrNote"></span>
 </header>
+<div class="stripe"></div>
+<nav class="tabs">
+  <button class="tab on" data-t="map">Map</button>
+  <button class="tab" data-t="seek">Seeker</button>
+  <button class="tab" data-t="hide">Hider</button>
+  <button class="tab" data-t="rules">Rules</button>
+  <button class="tab" data-t="log">Log</button>
+</nav>
 
-<main class="flex-1 min-h-0 relative">
-  <!-- MAP -->
-  <section id="tab-map" class="absolute inset-0 flex flex-col">
+<main style="flex:1;min-height:0;position:relative">
+  <section id="tab-map" class="sec" style="padding:0;display:flex;flex-direction:column">
     <div id="map"></div>
-    <div class="bg-slate-900 border-t border-slate-700 p-3 space-y-2 overflow-y-auto" style="max-height:44%">
-      <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs text-slate-400 w-full">Hider answered the radar question:</span>
-        <button class="btn" id="mIn">Yes, within the radius</button>
-        <button class="btn" id="mOut">No, outside the radius</button>
+    <div class="panel">
+      <div class="g2" id="tools"></div>
+      <div class="say" id="say"></div>
+      <div class="sm">The hider's answer:</div>
+      <div class="g2"><button class="btn" id="aY"></button><button class="btn" id="aN"></button></div>
+      <div id="radRow" class="row">
+        <span class="sm w-full">Radar distance:</span>
+        <span id="presets" class="row"></span>
+        <label class="sm">or custom <input id="rCustom" type="number" min="0.05" step="0.05" style="width:80px"> miles</label>
       </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <span class="text-xs text-slate-400 w-full">Radius (tap the map to drop a ping):</span>
-        <span id="presets" class="flex flex-wrap gap-2"></span>
-        <label class="flex items-center gap-1 text-xs text-slate-300">custom
-          <input id="rCustom" type="number" min="0.05" step="0.05" class="w-16 bg-slate-800 border border-slate-600 rounded px-1 py-1 text-slate-100"> mi</label>
-      </div>
-      <div class="flex flex-wrap gap-2">
-        <button class="btn" id="gps">Ping my location</button>
+      <div class="row">
+        <button class="btn gone" id="fin" style="background:#0f7b5c;color:#fff">Finish matching</button>
+        <button class="btn gone" id="cancel">Start over</button>
+        <button class="btn" id="gps">Use my location</button>
         <button class="btn" id="fit">Fit game area</button>
         <button class="btn" id="bndT">Boundary</button>
-        <button class="btn" id="clearP">Clear all pings</button>
+        <button class="btn" id="clearP">Clear all</button>
       </div>
       <details>
-        <summary class="text-xs text-slate-400"><span class="chev">&#9656;</span> Boundary looks off? Nudge it</summary>
-        <div class="flex gap-2 pt-2 items-center">
-          <button class="btn" data-n="0,1">N</button><button class="btn" data-n="0,-1">S</button>
-          <button class="btn" data-n="-1,0">W</button><button class="btn" data-n="1,0">E</button>
+        <summary class="sm" style="cursor:pointer"><span class="chev">&#9656;</span>Boundary looks off? Nudge it</summary>
+        <div class="row" style="padding-top:8px">
+          <button class="btn" data-n="0,1">North</button><button class="btn" data-n="0,-1">South</button>
+          <button class="btn" data-n="-1,0">West</button><button class="btn" data-n="1,0">East</button>
           <button class="btn" data-n="reset">Reset</button>
         </div>
       </details>
-      <div class="text-xs text-slate-400 flex gap-3">
-        <span><i class="inline-block w-3 h-1 align-middle" style="background:#facc15"></i> hide here OK</span>
-        <span><i class="inline-block w-3 h-1 align-middle" style="background:#ef4444"></i> no hiding here</span>
-        <span><i class="inline-block w-3 h-3 align-middle" style="background:#ef444455"></i> eliminated</span>
+      <div class="sm row" style="gap:14px">
+        <span><b style="color:#d4a800">&#9644;</b> hide here OK</span>
+        <span><b style="color:#d62839">&#9644;</b> no hiding</span>
+        <span><b style="color:#d62839">&#9632;</b> eliminated</span>
       </div>
-      <ul id="pingList" class="space-y-1"></ul>
+      <div id="pingList" style="display:grid;gap:8px"></div>
     </div>
   </section>
 
-  <!-- SEEKER -->
-  <section id="tab-seek" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="seekBody" class="max-w-xl mx-auto space-y-3"></div></section>
-
-  <!-- HIDER -->
-  <section id="tab-hide" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="hideBody" class="max-w-xl mx-auto space-y-3"></div></section>
-
-  <!-- RULES -->
-  <section id="tab-rules" class="absolute inset-0 overflow-y-auto p-4 hidden"><div id="rulesBody" class="max-w-xl mx-auto space-y-3"></div></section>
-
-  <!-- LOG -->
-  <section id="tab-log" class="absolute inset-0 overflow-y-auto p-4 hidden">
-    <div class="max-w-xl mx-auto space-y-3">
-      <div class="flex gap-2">
-        <input id="logIn" placeholder="Add a note (question asked, answer, curse...)" class="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm">
-        <button class="btn" id="logAdd">Add</button>
-      </div>
-      <ul id="logList" class="space-y-1 text-sm"></ul>
-      <div class="flex gap-2 pt-2">
-        <button class="btn" id="logClear">Clear log</button>
-        <button class="btn" id="resetAll" style="color:#fca5a5">Reset whole game</button>
-      </div>
+  <section id="tab-seek" class="sec gone"><div id="seekBody"></div></section>
+  <section id="tab-hide" class="sec gone"><div id="hideBody"></div></section>
+  <section id="tab-rules" class="sec gone"><div id="rulesBody"></div></section>
+  <section id="tab-log" class="sec gone">
+    <div>
+      <div class="row" style="flex-wrap:nowrap"><input id="logIn" placeholder="Add a note..." style="flex:1;min-width:0"><button class="btn" id="logAdd">Add</button></div>
+      <div id="logList" style="display:grid;gap:8px"></div>
+      <div class="row"><button class="btn" id="logClear">Clear log</button><button class="btn" id="resetAll" style="color:#d62839">Reset whole game</button></div>
     </div>
   </section>
 </main>
-
-<nav class="grid grid-cols-5 bg-slate-900 border-t border-slate-700 text-xs text-slate-400" style="padding-bottom:env(safe-area-inset-bottom)">
-  <button class="tab on py-3" data-t="map">Map</button>
-  <button class="tab py-3" data-t="seek">Seeker</button>
-  <button class="tab py-3" data-t="hide">Hider</button>
-  <button class="tab py-3" data-t="rules">Rules</button>
-  <button class="tab py-3" data-t="log">Log</button>
-</nav>
 
 <script>
 /* ---------- GAME CONTENT (from the Google Site) ---------- */
@@ -140,7 +152,7 @@ const RULES=[
 
 /* ---------- STATE ---------- */
 const K='jl-rattan-v1';
-let S={pings:[],log:[],off:[0,0],bnd:true,r:804.67,inside:true};
+let S={items:[],log:[],off:[0,0],bnd:true,r:804.67,inside:true,tool:'radar'};
 try{Object.assign(S,JSON.parse(localStorage.getItem(K)||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -149,9 +161,24 @@ const mi=m=>(m/1609.344).toFixed(2)+' mi';
 const now=()=>new Date().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 function log(t){S.log.unshift({t:now(),x:t});save();renderLog()}
 
+/* ---------- GEOMETRY (local flat plane in meters around the park) ---------- */
+const C=[30.4497,-97.7570],KX=111320*Math.cos(C[0]*Math.PI/180),KY=110574;
+const xy=p=>[(p[1]-C[1])*KX,(p[0]-C[0])*KY], ll=p=>[C[0]+p[1]/KY,C[1]+p[0]/KX];
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+function ring(lat,lng,r,n=72){const o=[];for(let i=0;i<n;i++){const b=2*Math.PI*i/n,R=6378137;
+  o.push([lat+(r/R)*Math.cos(b)*180/Math.PI,lng+(r/R)*Math.sin(b)/Math.cos(lat*Math.PI/180)*180/Math.PI])}return o}
+// keep the part of polygon P that is closer to F than to O (Sutherland-Hodgman)
+function clip(P,d,c){const f=p=>2*(p[0]*d[0]+p[1]*d[1])-c,o=[];
+  for(let i=0;i<P.length;i++){const a=P[i],b=P[(i+1)%P.length],fa=f(a),fb=f(b);
+    if(fa<=0)o.push(a);
+    if((fa<0&&fb>0)||(fa>0&&fb<0)){const t=fa/(fa-fb);o.push([a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])])}}return o}
+function cell(F,others){let P=[[-1e4,-1e4],[1e4,-1e4],[1e4,1e4],[-1e4,1e4]];
+  others.forEach(O=>{P=clip(P,[O[0]-F[0],O[1]-F[1]],O[0]*O[0]+O[1]*O[1]-F[0]*F[0]-F[1]*F[1])});return P.map(ll)}
+const box=()=>[[C[0]+.2,C[1]-.25],[C[0]+.2,C[1]+.25],[C[0]-.2,C[1]+.25],[C[0]-.2,C[1]-.25]];
+if(S.pings){S.items=S.items.concat(S.pings.map(p=>({id:p.id,tool:'radar',inside:p.inside,pts:[[p.lat,p.lng]],region:ring(p.lat,p.lng,p.r),txt:mi(p.r)})));delete S.pings;save()}
+
 /* ---------- MAP ---------- */
-// Boundary traced from the supplied map image; pixel coords -> lat/lng (approximate, use the nudge buttons)
-const PARK_LL=[30.4497,-97.7570];
+const PARK_LL=C;
 const px=(x,y)=>[30.4510-(y-372)*0.0000225+S.off[1]*0.00009, -97.7618+(x-515)*0.000026+S.off[0]*0.0001];
 const Y1=[[640,0],[660,50],[700,110],[735,170],[790,240],[830,290],[860,320],[905,350],[960,390],[1000,440],[1018,500],[1024,518]];
 const R1=[[1024,518],[1000,535],[970,548]];
@@ -161,107 +188,133 @@ const Y3=[[360,685],[348,640],[335,590],[280,585],[255,570],[230,540],[215,490],
 const R3=[[470,180],[437,95],[640,0]];
 const SPUR=[[858,307],[900,258]];
 
-const map=L.map('map',{zoomControl:true}).setView(PARK_LL,15);
+const map=L.map('map').setView(PARK_LL,15);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-const bndG=L.layerGroup().addTo(map), pingG=L.layerGroup().addTo(map);
-L.marker(PARK_LL,{title:'Rattan Creek Park',opacity:.9}).addTo(map).bindTooltip('Rattan Creek Park');
+const bndG=L.layerGroup().addTo(map),itemG=L.layerGroup().addTo(map),pendG=L.layerGroup().addTo(map);
+L.marker(PARK_LL).addTo(map).bindTooltip('Rattan Creek Park');
 
 function drawBoundary(){
-  bndG.clearLayers(); if(!S.bnd) return;
-  const all=[].concat(Y1,R1,Y2,R2,Y3,R3).map(p=>px(...p));
-  L.polygon(all,{stroke:false,fillColor:'#38bdf8',fillOpacity:.07,interactive:false}).addTo(bndG);
-  [[Y1,'#facc15'],[R1,'#ef4444'],[Y2,'#facc15'],[R2,'#ef4444'],[Y3,'#facc15'],[R3,'#ef4444'],[SPUR,'#ef4444']].forEach(([pts,col])=>
-    L.polyline(pts.map(p=>px(...p)),{color:col,weight:5,opacity:.95,interactive:false}).addTo(bndG));
+  bndG.clearLayers();if(!S.bnd)return;
+  L.polygon([].concat(Y1,R1,Y2,R2,Y3,R3).map(p=>px(...p)),{stroke:false,fillColor:'#2a6fdb',fillOpacity:.07,interactive:false}).addTo(bndG);
+  [[Y1,'#ffc400'],[R1,'#d62839'],[Y2,'#ffc400'],[R2,'#d62839'],[Y3,'#ffc400'],[R3,'#d62839'],[SPUR,'#d62839']].forEach(([pts,col])=>
+    L.polyline(pts.map(p=>px(...p)),{color:col,weight:6,opacity:.95,interactive:false}).addTo(bndG));
 }
-function ring(lat,lng,r,n=72){const o=[];for(let i=0;i<n;i++){const b=2*Math.PI*i/n,R=6378137;
-  o.push([lat+(r/R)*Math.cos(b)*180/Math.PI, lng+(r/R)*Math.sin(b)/Math.cos(lat*Math.PI/180)*180/Math.PI])}return o}
-function drawPings(){
-  pingG.clearLayers();
-  S.pings.forEach((p,i)=>{
-    const col=p.inside?'#22c55e':'#ef4444';
-    if(p.inside){ // eliminate everything OUTSIDE the circle
-      const big=[[p.lat+.2,p.lng-.25],[p.lat+.2,p.lng+.25],[p.lat-.2,p.lng+.25],[p.lat-.2,p.lng-.25]];
-      L.polygon([big,ring(p.lat,p.lng,p.r)],{stroke:false,fillColor:'#ef4444',fillOpacity:.22,interactive:false}).addTo(pingG);
-    }
-    const c=L.circle([p.lat,p.lng],{radius:p.r,color:col,weight:3,dashArray:p.inside?'8 6':null,fillColor:'#ef4444',fillOpacity:p.inside?0:.3,bubblingMouseEvents:false}).addTo(pingG);
-    c.bindPopup(`<b>Ping ${i+1}</b><br>${mi(p.r)}, hider ${p.inside?'IS':'is NOT'} within<br><button onclick="delPing(${p.id})" style="color:#b91c1c;font-weight:600">Delete ping</button>`);
-    L.circleMarker([p.lat,p.lng],{radius:4,color:col,fillColor:col,fillOpacity:1,interactive:false}).addTo(pingG);
-  });
-}
-function addPing(lat,lng){
-  const p={id:Date.now(),lat,lng,r:S.r,inside:S.inside};
-  S.pings.push(p);save();drawPings();renderPings();
-  log(`Radar ${mi(p.r)}: hider ${p.inside?'IS':'is NOT'} within (${lat.toFixed(5)}, ${lng.toFixed(5)})`);
-}
-window.delPing=id=>{S.pings=S.pings.filter(p=>p.id!==id);save();map.closePopup();drawPings();renderPings();log('Deleted a ping')};
-function renderPings(){
-  $('pingList').innerHTML=S.pings.length?S.pings.map((p,i)=>`<li class="flex items-center justify-between bg-slate-800 rounded px-2 py-1 text-xs">
-    <span>#${i+1} ${mi(p.r)} <b style="color:${p.inside?'#4ade80':'#f87171'}">${p.inside?'hider inside':'hider outside'}</b></span>
-    <span class="flex gap-1"><button class="btn" onclick="map.setView([${p.lat},${p.lng}],16)">Go</button><button class="btn" onclick="delPing(${p.id})">Delete</button></span></li>`).join(''):
-    '<li class="text-xs text-slate-500">No pings yet. Pick an answer and radius, then tap the map.</li>';
-  $('hdrNote').textContent=S.pings.length+' ping'+(S.pings.length===1?'':'s');
-}
-function syncControls(){
-  $('mIn').classList.toggle('on',S.inside);$('mOut').classList.toggle('on',!S.inside);
+
+/* ---------- QUESTION TOOLS ---------- */
+const T={
+ radar:{n:'Radar',c:'#2a6fdb',a:['Yes, within','No, not within'],L:['S']},
+ thermo:{n:'Thermometer',c:'#d62839',a:['Hotter','Colder'],L:['A','B']},
+ match:{n:'Matching',c:'#0f7b5c',a:['Same','Different'],L:[]},
+ measure:{n:'Measuring',c:'#7336d6',a:['Closer','Further'],L:['P','S']}
+};
+let tmp=[];
+const pin=(p,t,c)=>L.marker(p,{interactive:false,icon:L.divIcon({className:'',iconSize:[30,30],iconAnchor:[15,15],html:`<div class="pin" style="background:${c}">${t}</div>`})});
+const lab=(k,j)=>T[k].L[j]||String(j+1);
+function say(){const k=S.tool,n=tmp.length;
+  return k==='radar'?'Tap the map where the seekers are standing.':
+   k==='thermo'?(n?'Now tap where the seekers ended up (B).':'Tap where the seekers started (A).'):
+   k==='match'?(n?`Tap each other place in the same category, then press Finish (${n} placed).`:'Tap the seekers\' nearest place (1).'):
+   (n?'Now tap where the seekers are standing.':'Tap the place being measured to (a park, school, etc).')}
+function syncUI(){const t=T[S.tool],n=tmp.length;
+  document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('dim',b.dataset.k!==S.tool));
+  $('say').textContent=say();
+  $('aY').textContent=t.a[0];$('aN').textContent=t.a[1];
+  $('aY').classList.toggle('on',S.inside);$('aN').classList.toggle('on',!S.inside);
+  $('radRow').classList.toggle('gone',S.tool!=='radar');
+  $('fin').classList.toggle('gone',!(S.tool==='match'&&n>=2));
+  $('cancel').classList.toggle('gone',!n);
   [...$('presets').children].forEach(b=>b.classList.toggle('on',Math.abs(+b.dataset.r-S.r)<1));
-  $('bndT').classList.toggle('on',S.bnd);
-}
+  $('bndT').classList.toggle('on',S.bnd)}
+function drawTmp(){pendG.clearLayers();tmp.forEach((p,j)=>pin(p,lab(S.tool,j),'#12203a').addTo(pendG))}
+function tap(p){tmp.push(p);const k=S.tool;
+  if((k==='radar'&&tmp.length===1)||((k==='thermo'||k==='measure')&&tmp.length===2))commit();else drawTmp();
+  syncUI()}
+function commit(){const k=S.tool,P=tmp.map(xy);let region,txt;
+  if(k==='radar'){region=ring(tmp[0][0],tmp[0][1],S.r);txt=mi(S.r)}
+  else if(k==='thermo'){region=cell(P[1],[P[0]]);txt=mi(dist(P[0],P[1]))+' walked'}
+  else if(k==='match'){region=cell(P[0],P.slice(1));txt=tmp.length+' places'}
+  else{const r=dist(P[0],P[1]);region=ring(tmp[0][0],tmp[0][1],r,90);txt=mi(r)+' away'}
+  S.items.push({id:Date.now(),tool:k,inside:S.inside,pts:tmp,region,txt});
+  log(`${T[k].n}: ${T[k].a[S.inside?0:1]} (${txt})`);
+  tmp=[];pendG.clearLayers();save();draw();renderItems();syncUI()}
+function draw(){itemG.clearLayers();
+  S.items.forEach((it,i)=>{const c=T[it.tool].c;
+    L.polygon(it.inside?[box(),it.region]:it.region,{stroke:false,fillColor:'#d62839',fillOpacity:it.inside?.24:.3,interactive:false}).addTo(itemG);
+    L.polygon(it.region,{color:c,weight:4,fill:false,dashArray:it.inside?'10 8':null,bubblingMouseEvents:false}).addTo(itemG)
+      .bindPopup(`<b>#${i+1} ${T[it.tool].n}</b><br>${T[it.tool].a[it.inside?0:1]}<br><button onclick="delItem(${it.id})" style="color:#d62839;font-weight:700;font-size:16px">Delete</button>`);
+    if(it.tool==='thermo')L.polyline(it.pts,{color:c,weight:3,interactive:false}).addTo(itemG);
+    it.pts.forEach((p,j)=>pin(p,lab(it.tool,j),c).addTo(itemG))})}
+window.delItem=id=>{S.items=S.items.filter(p=>p.id!==id);save();map.closePopup();draw();renderItems();log('Deleted an answer from the map')};
+function renderItems(){
+  $('pingList').innerHTML=S.items.length?S.items.map((it,i)=>`<div class="item" style="border-left:12px solid ${T[it.tool].c}">
+    <span><b>${i+1}. ${T[it.tool].n}</b><br>${T[it.tool].a[it.inside?0:1]} <span class="sm">${esc(it.txt)}</span></span>
+    <span class="row"><button class="btn" style="min-height:44px" onclick="map.setView([${it.pts[0][0]},${it.pts[0][1]}],16)">Go</button><button class="btn" style="min-height:44px" onclick="delItem(${it.id})">Delete</button></span></div>`).join(''):
+    '<div class="sm">Nothing on the map yet. Pick a question, set the hider\'s answer, then tap the map.</div>';
+  $('hdrNote').textContent=S.items.length+(S.items.length===1?' answer':' answers')}
+
+$('tools').innerHTML=Object.keys(T).map(k=>`<button class="btn tool" data-k="${k}" style="background:${T[k].c}">${T[k].n}</button>`).join('');
+document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>{S.tool=b.dataset.k;tmp=[];drawTmp();save();syncUI()});
 [['250 yd',228.6],['1/4 mi',402.34],['1/2 mi',804.67],['1 mi',1609.34]].forEach(([l,r])=>{
   const b=document.createElement('button');b.className='btn';b.textContent=l;b.dataset.r=r;
-  b.onclick=()=>{S.r=r;$('rCustom').value='';save();syncControls()};$('presets').appendChild(b)});
-$('rCustom').oninput=e=>{const v=parseFloat(e.target.value);if(v>0){S.r=v*1609.344;save();syncControls()}};
-$('mIn').onclick=()=>{S.inside=true;save();syncControls()};
-$('mOut').onclick=()=>{S.inside=false;save();syncControls()};
-$('bndT').onclick=()=>{S.bnd=!S.bnd;save();drawBoundary();syncControls()};
+  b.onclick=()=>{S.r=r;$('rCustom').value='';save();syncUI()};$('presets').appendChild(b)});
+$('rCustom').oninput=e=>{const v=parseFloat(e.target.value);if(v>0){S.r=v*1609.344;save();syncUI()}};
+$('aY').onclick=()=>{S.inside=true;save();syncUI()};
+$('aN').onclick=()=>{S.inside=false;save();syncUI()};
+$('fin').onclick=commit;
+$('cancel').onclick=()=>{tmp=[];drawTmp();syncUI()};
+$('bndT').onclick=()=>{S.bnd=!S.bnd;save();drawBoundary();syncUI()};
 $('fit').onclick=()=>map.fitBounds(L.latLngBounds([].concat(Y1,R1,Y2,R2,Y3,R3).map(p=>px(...p))).pad(.05));
-$('clearP').onclick=()=>{if(S.pings.length&&confirm('Remove all pings?')){S.pings=[];save();drawPings();renderPings();log('Cleared all pings')}};
+$('clearP').onclick=()=>{if(S.items.length&&confirm('Remove everything from the map?')){S.items=[];tmp=[];drawTmp();save();draw();renderItems();syncUI();log('Cleared the map')}};
 $('gps').onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(
-  pos=>{addPing(pos.coords.latitude,pos.coords.longitude);map.setView([pos.coords.latitude,pos.coords.longitude],16)},
+  pos=>{const p=[pos.coords.latitude,pos.coords.longitude];map.setView(p,16);tap(p)},
   ()=>alert('Could not get your location. Allow location access and try again.')):alert('Location is not available on this device.');
 document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{
   if(b.dataset.n==='reset')S.off=[0,0];else{const[a,c]=b.dataset.n.split(',').map(Number);S.off=[S.off[0]+a,S.off[1]+c]}
   save();drawBoundary()});
-map.on('click',e=>addPing(e.latlng.lat,e.latlng.lng));
+map.on('click',e=>tap([e.latlng.lat,e.latlng.lng]));
 
 /* ---------- CONTENT TABS ---------- */
-const det=(title,body,sub='')=>`<details class="bg-slate-800 rounded-lg border border-slate-700"><summary class="px-3 py-3 flex items-center justify-between"><span class="font-semibold"><span class="chev text-slate-400 mr-2">&#9656;</span>${title}</span><span class="text-xs text-slate-400">${sub}</span></summary><div class="px-3 pb-3 text-sm text-slate-300 space-y-2">${body}</div></details>`;
-$('seekBody').innerHTML='<p class="text-sm text-slate-400">Each question costs the hider a response time and you draw cards in return. Tap a question type to see the options.</p>'+SEEK.map(s=>
-  det(s.n,`<p class="text-slate-100">${esc(s.q)}</p>${s.note?`<p class="text-slate-400">${esc(s.note)}</p>`:''}`+
-  Object.entries(s.o).map(([k,v])=>`<div><div class="font-semibold text-slate-100">${k}</div>${v.length?'<ul class="list-disc ml-5">'+v.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`).join(''),
-  `${s.t} min &middot; ${s.c}`)).join('');
+const det=(title,body,sub='',col='#12203a')=>`<details class="card"><summary style="border-left:14px solid ${col}"><b><span class="chev">&#9656;</span>${title}</b><span class="sm">${sub}</span></summary><div class="body">${body}</div></details>`;
+const SC={Radar:'#2a6fdb',Thermometer:'#d62839',Matching:'#0f7b5c',Measuring:'#7336d6',Photos:'#ff9f1c'};
+$('seekBody').innerHTML='<p class="sm">Tap a question to see its options. Log the answer on the Map tab.</p>'+SEEK.map(s=>
+  det(s.n,`<p><b>${esc(s.q)}</b></p>${s.note?`<p class="sm">${esc(s.note)}</p>`:''}`+
+  Object.entries(s.o).map(([k,v])=>`<div><b>${k}</b>${v.length?'<ul style="margin:4px 0 0 22px;list-style:disc">'+v.map(x=>`<li>${esc(x)}</li>`).join('')+'</ul>':''}</div>`).join(''),
+  `${s.t} min &middot; ${s.c}`,SC[s.n])).join('');
 
-$('hideBody').innerHTML=`<p class="text-sm text-slate-400">Text the seekers every card you play. Cards are announced when played, not when drawn.</p>
- <div class="bg-slate-800 rounded-lg border border-slate-700 p-3 space-y-2"><div class="font-semibold">Draw a card</div>
-  <button class="btn on" id="roll">Roll 1-100</button><div id="rollOut" class="text-sm text-slate-200"></div></div>`+
- det('Card table',`<table class="w-full">${DRAW.map(r=>`<tr class="border-t border-slate-700"><td class="py-1 pr-3 text-slate-400 whitespace-nowrap">${r[0]===r[1]?r[0]:r[0]+'-'+r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`)+
- det('Move card',`<p>${RULES[5][1]}</p>`,'roll 66')+
- '<h2 class="font-semibold pt-2">Curses <span class="text-xs text-slate-400 font-normal">(roll 1-13; re-roll if you already have it)</span></h2>'+
- '<button class="btn on" id="rollC">Roll a curse</button><div id="curseOut" class="text-sm"></div>'+
- CURSES.map((c,i)=>det(`${i+1}. ${c[0]}`,`<p>${esc(c[1])}</p><p class="text-slate-100"><b>Casting cost:</b> ${esc(c[2])}</p>`)).join('');
+$('hideBody').innerHTML=`<p class="sm">Text the seekers every card you play. Cards are announced when played, not when drawn.</p>
+ <div class="card p3" style="background:var(--yel);display:grid;gap:10px"><h2 style="margin:0">Draw a card</h2>
+  <button class="btn" id="roll" style="background:#12203a;color:#fff;font-size:22px;min-height:60px">Roll 1-100</button><div id="rollOut"></div></div>`+
+ det('Card table',`<table style="width:100%">${DRAW.map(r=>`<tr style="border-top:2px solid #d5deea"><td style="padding:6px 12px 6px 0;white-space:nowrap;font-weight:700">${r[0]===r[1]?r[0]:r[0]+'-'+r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>`)+
+ det('Move card',`<p>${RULES[5][1]}</p>`,'roll 66','#ff9f1c')+
+ '<h2>Curses</h2><p class="sm">Roll 1-13. If you already have that curse, roll again.</p>'+
+ '<button class="btn" id="rollC" style="background:#d62839;color:#fff;font-size:22px;min-height:60px">Roll a curse</button><div id="curseOut"></div>'+
+ CURSES.map((c,i)=>det(`${i+1}. ${c[0]}`,`<p>${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p>`,'','#d62839')).join('');
 const rnd=n=>1+Math.floor(Math.random()*n);
 function showCurse(){const i=rnd(13),c=CURSES[i-1];
-  $('curseOut').innerHTML=`<div class="bg-slate-800 border border-yellow-400 rounded-lg p-3 mt-2"><b>${i}. ${c[0]}</b><p class="text-slate-300">${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p></div>`;
-  log(`Hider curse roll: ${c[0]}`);return c[0]}
+  $('curseOut').innerHTML=`<div class="card p3" style="margin-top:12px;border-color:#d62839"><h2 style="margin:0">${i}. ${c[0]}</h2><p>${esc(c[1])}</p><p><b>Casting cost:</b> ${esc(c[2])}</p></div>`;
+  log(`Hider curse roll: ${c[0]}`)}
 $('roll').onclick=()=>{const n=rnd(100),r=DRAW.find(r=>n>=r[0]&&n<=r[1]);
-  $('rollOut').innerHTML=`<b>${n}</b>: ${r[2]}`;log(`Hider card roll ${n}: ${r[2]}`);if(n>=77){$('rollOut').innerHTML+=' &middot; <i>rolling curse...</i>';showCurse()}};
+  $('rollOut').innerHTML=`<div style="font:800 40px/1 Rubik,sans-serif">${n}</div><div style="font-size:21px;font-weight:700">${r[2]}</div>`;
+  log(`Hider card roll ${n}: ${r[2]}`);if(n>=77)showCurse()};
 $('rollC').onclick=showCurse;
 
-$('rulesBody').innerHTML=RULES.map(r=>`<div class="bg-slate-800 rounded-lg border border-slate-700 p-3"><div class="font-semibold">${r[0]}</div><p class="text-sm text-slate-300 mt-1">${esc(r[1])}</p></div>`).join('')+
- '<p class="text-xs text-slate-500">Map tools: tap the map to drop a radar ping. "Yes" shades everything outside the circle; "No" shades the circle itself.</p>';
+$('rulesBody').innerHTML=RULES.map((r,i)=>`<div class="card p3" style="border-left:14px solid ${['#ffc400','#2a6fdb','#d62839','#0f7b5c','#7336d6','#ff9f1c'][i]}"><h2 style="margin:0">${r[0]}</h2><p style="margin-top:6px">${esc(r[1])}</p></div>`).join('')+
+ '<p class="sm">Map answers: a "yes" shades everything outside the shape; a "no" shades the shape itself. The clear area is where the hider can still be.</p>';
 
 /* ---------- LOG / TABS ---------- */
-function renderLog(){$('logList').innerHTML=S.log.length?S.log.map(l=>`<li class="bg-slate-800 rounded px-3 py-2"><span class="text-slate-500 mr-2">${esc(l.t)}</span>${esc(l.x)}</li>`).join(''):'<li class="text-slate-500">Nothing logged yet.</li>'}
+function renderLog(){$('logList').innerHTML=S.log.length?S.log.map(l=>`<div class="item"><span><b>${esc(l.t)}</b> &nbsp;${esc(l.x)}</span></div>`).join(''):'<div class="sm">Nothing logged yet.</div>'}
 $('logAdd').onclick=()=>{const v=$('logIn').value.trim();if(v){log(v);$('logIn').value=''}};
 $('logIn').onkeydown=e=>{if(e.key==='Enter')$('logAdd').click()};
 $('logClear').onclick=()=>{if(confirm('Clear the log?')){S.log=[];save();renderLog()}};
-$('resetAll').onclick=()=>{if(confirm('Reset pings and log for a new game?')){S.pings=[];S.log=[];save();drawPings();renderPings();renderLog()}};
+$('resetAll').onclick=()=>{if(confirm('Reset the map and log for a new game?')){S.items=[];S.log=[];tmp=[];drawTmp();save();draw();renderItems();renderLog();syncUI()}};
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t===b));
-  ['map','seek','hide','rules','log'].forEach(t=>$('tab-'+t).classList.toggle('hidden',t!==b.dataset.t));
+  ['map','seek','hide','rules','log'].forEach(t=>$('tab-'+t).classList.toggle('gone',t!==b.dataset.t));
   if(b.dataset.t==='map')setTimeout(()=>map.invalidateSize(),50)});
 
-drawBoundary();drawPings();renderPings();renderLog();syncControls();
-if(S.r&&!document.querySelector('#presets .on'))$('rCustom').value=(S.r/1609.344).toFixed(2);
+drawBoundary();draw();renderItems();renderLog();syncUI();
+if(!document.querySelector('#presets .on'))$('rCustom').value=(S.r/1609.344).toFixed(2);
+
 </script>
 </body>
 </html>
